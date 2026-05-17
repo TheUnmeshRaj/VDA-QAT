@@ -26,7 +26,7 @@ LR_MAX          = 2e-5       # small LR — we're fine-tuning quantized weights 
 WEIGHT_DECAY    = 1e-4
 GRAD_CLIP       = 1.0
 AMP_ENABLED     = True
-SAVE_EVERY_N    = 5          # checkpoint every N epochs
+SAVE_EVERY_N    = 2          # checkpoint every N epochs
 WARMUP_PCT      = 0.05
 GRAD_ACCUM      = 2          # effective batch = BATCH_SIZE * GRAD_ACCUM = 12
 MIN_DEPTH       = 1e-3
@@ -128,10 +128,16 @@ def save_checkpoint(quant_sim, optimizer, scheduler, epoch, metrics):
 
 
 def load_checkpoint(quant_sim, optimizer, scheduler, path: str) -> int:
-    ck = torch.load(path, map_location=DEVICE)
+    ck = torch.load(path, map_location=DEVICE, weights_only=False)
     quant_sim.model.load_state_dict(ck["model_state"])
-    optimizer.load_state_dict(ck["optimizer"])
-    scheduler.load_state_dict(ck["scheduler"])
+    if "optimizer" in ck:
+        optimizer.load_state_dict(ck["optimizer"])
+    else:
+        print("[Resume] WARNING: checkpoint has no optimizer state, starting fresh optimizer")
+    if "scheduler" in ck:
+        scheduler.load_state_dict(ck["scheduler"])
+    else:
+        print("[Resume] WARNING: checkpoint has no scheduler state, starting fresh scheduler")
     print(f"[Resume] epoch {ck['epoch']}  metrics={ck.get('metrics', {})}")
     return ck["epoch"] + 1
 
@@ -252,8 +258,13 @@ def train_qat(quant_sim, train_loader, val_loader,
         if val_metrics["abs_rel"] < best_abs_rel:
             best_abs_rel = val_metrics["abs_rel"]
             best_path    = os.path.join(CKPT_DIR, "vda_qat_best.pt")
-            torch.save({"epoch": epoch, "model_state": quant_sim.model.state_dict(),
-                        "metrics": val_metrics}, best_path)
+            torch.save({
+                "epoch"      : epoch,
+                "model_state": quant_sim.model.state_dict(),
+                "optimizer"  : optimizer.state_dict(),
+                "scheduler"  : scheduler.state_dict(),
+                "metrics"    : val_metrics,
+            }, best_path)
             print(f"  [Best] abs_rel={best_abs_rel:.4f}  saved → {best_path}")
 
     print(f"[QAT] Training complete. Best abs_rel = {best_abs_rel:.4f}")

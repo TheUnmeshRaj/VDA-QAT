@@ -26,11 +26,11 @@ def _sorted_frames(directory, exts=("*.png", "*.jpg")):
 
 class VKittiVideoDataset(Dataset):
 
-    def __init__(self, seq_len=SEQ_LEN, stride=1,
+    def __init__(self, seq_len=SEQ_LEN, stride=None,
                  img_h=IMG_H, img_w=IMG_W):
 
         self.seq_len = seq_len
-        self.stride = stride
+        self.stride = stride if stride is not None else seq_len
 
         self.rgb_transform = transforms.Compose([
             transforms.Resize((img_h, img_w)),
@@ -89,14 +89,14 @@ class VKittiVideoDataset(Dataset):
             rgb_files = rgb_files[:n]
             dep_files = dep_files[:n]
 
-            for start in range(0, n - seq_len + 1, stride):
+            for start in range(0, n - seq_len + 1, self.stride):
 
                 rgb_clip = rgb_files[start:start + seq_len]
                 dep_clip = dep_files[start:start + seq_len]
 
                 self.clips.append((rgb_clip, dep_clip))
 
-        print(f"[Dataset] {len(self.clips)} clips  |  seq_len={seq_len}  stride={stride}")
+        print(f"[Dataset] {len(self.clips)} clips  |  seq_len={seq_len}  stride={self.stride}")
 
     def __len__(self):
         return len(self.clips)
