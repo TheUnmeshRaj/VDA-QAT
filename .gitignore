@@ -1,0 +1,7 @@
+dataset/
+*.zip
+*.tar.gz
+checkpoints/
+Video-Depth-Anything/
+__pycache__/
+.vscode/
