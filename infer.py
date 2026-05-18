@@ -64,9 +64,9 @@ rgb_transform = transforms.Compose([
 # ── model loading ─────────────────────────────────────────────────────────────
 
 def load_model(ckpt_path: str, no_quant: bool = False):
-    import model_patch
-    model_patch.DEVICE = DEVICE          # override hardcoded cuda:1
-    from model_patch import build_patched_vda
+    import model_patch2
+    model_patch2.DEVICE = DEVICE          # override hardcoded cuda:1
+    from model_patch2 import build_patched_vda
 
     print(f"[Infer] Building patched VDA model on {DEVICE} ...")
     model = build_patched_vda(verify=False)
@@ -76,7 +76,7 @@ def load_model(ckpt_path: str, no_quant: bool = False):
         model.eval()
         return model
 
-    from aimet_qat_init import build_quant_sim
+    from old.aimet_qat_init import build_quant_sim
     print(f"[Infer] Initializing QuantSim wrapper for loading QAT checkpoint ...")
     dummy = torch.randn(1, 2, 3, 392, 518, device=DEVICE)
     qsim = build_quant_sim(model, dummy)
@@ -108,8 +108,9 @@ def run_inference(model, n_clips: int = 3, out_dir: str = OUT_DIR):
 
     clip_count = 0
     for rgb_dir in all_rgb_dirs:
-        if clip_count >= n_clips:
-            break
+        scene_tag = os.path.relpath(rgb_dir, RGB_ROOT).replace(os.sep, "_")
+        if scene_tag != "Scene01_15-deg-left_frames_rgb_Camera_0":
+            continue
 
         frames = _sorted_frames(rgb_dir)
         if len(frames) < SEQ_LEN:
@@ -117,9 +118,8 @@ def run_inference(model, n_clips: int = 3, out_dir: str = OUT_DIR):
 
         # Take the first SEQ_LEN frames of this directory
         clip_frames = frames[:SEQ_LEN]
-        scene_tag   = os.path.relpath(rgb_dir, RGB_ROOT).replace(os.sep, "_")
 
-        print(f"\n[Infer] Clip {clip_count + 1}/{n_clips}: {scene_tag}")
+        print(f"\n[Infer] Target Clip: {scene_tag}")
 
         # Load and preprocess frames
         rgb_tensors = []
@@ -148,8 +148,10 @@ def run_inference(model, n_clips: int = 3, out_dir: str = OUT_DIR):
 
         depth_np = depth.cpu().float().numpy()     # [T,H,W]
 
-        # Save side-by-side RGB | Depth for each frame
+        # Save side-by-side RGB | Depth for frame 00 only
         for t, (frame_img, d_map) in enumerate(zip(original_frames, depth_np)):
+            if t != 0:
+                continue
             frame_rgb = frame_img.resize((IMG_W, IMG_H))
             depth_color = Image.fromarray(colorize_depth(d_map))
 
@@ -164,8 +166,9 @@ def run_inference(model, n_clips: int = 3, out_dir: str = OUT_DIR):
             print(f"  [Saved] {out_path}")
 
         clip_count += 1
+        break # Only processing our single target clip
 
-    print(f"\n[Infer] Done! {clip_count} clips saved to {out_dir}")
+    print(f"\n[Infer] Done! Single target frame saved to {out_dir}")
 
 
 # ── main ──────────────────────────────────────────────────────────────────────

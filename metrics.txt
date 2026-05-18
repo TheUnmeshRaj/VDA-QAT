@@ -1,0 +1,11 @@
+[Epoch 000] loss=0.1436  abs_rel=0.2008  d1=0.7184  rmse=12.1160  rmse_log=0.3351  time=16369
+[Epoch 001] loss=0.1006  abs_rel=0.1809  d1=0.7339  rmse=12.0851  rmse_log=0.3257  time=3974s
+[Epoch 002] loss=0.1010  abs_rel=0.1790  d1=0.7461  rmse=12.0555  rmse_log=0.3230  time=3844s
+[Epoch 003] loss=0.0996  abs_rel=0.1705  d1=0.7526  rmse=12.0302  rmse_log=0.3190  time=3839s
+[Epoch 004] loss=0.0989  abs_rel=0.1886  d1=0.7368  rmse=12.0780  rmse_log=0.3272  time=3754s
+[Epoch 005] loss=0.0985  abs_rel=0.1825  d1=0.7443  rmse=12.0494  rmse_log=0.3239  time=3735s
+[Epoch 006] loss=0.0981  abs_rel=0.1681  d1=0.7567  rmse=11.9986  rmse_log=0.3170  time=3736s
+[Epoch 012] loss=0.0967  abs_rel=0.1809  d1=0.7495  rmse=12.0019  rmse_log=0.3213  time=3692s
+[Epoch 013] loss=0.0965  abs_rel=0.1763  d1=0.7538  rmse=11.9770  rmse_log=0.3189  time=3663s
+[Epoch 014] loss=0.0963  abs_rel=0.1694  d1=0.7587  rmse=11.9632  rmse_log=0.3158  time=3667s
+[Epoch 015] loss=0.0961  abs_rel=0.1638  d1=0.7614  rmse=11.9429  rmse_log=0.3134  time=3675s

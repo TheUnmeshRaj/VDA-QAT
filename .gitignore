@@ -2,6 +2,10 @@ dataset/
 *.zip
 *.tar.gz
 checkpoints/
+checkpoints2/
 Video-Depth-Anything/
 __pycache__/
 .vscode/
+.my_pip_cache/
+.my_tmp/
+vda_env/

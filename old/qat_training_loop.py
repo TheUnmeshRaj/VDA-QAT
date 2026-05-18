@@ -11,7 +11,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.amp import GradScaler, autocast
-from torch.cuda.amp.grad_scaler import OptState
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import OneCycleLR
 
@@ -27,7 +26,7 @@ LR_MAX          = 2e-5       # small LR — we're fine-tuning quantized weights 
 WEIGHT_DECAY    = 1e-4
 GRAD_CLIP       = 1.0
 AMP_ENABLED     = True
-SAVE_EVERY_N    = 1          # checkpoint every N epochs
+SAVE_EVERY_N    = 2          # checkpoint every N epochs
 WARMUP_PCT      = 0.05
 GRAD_ACCUM      = 2          # effective batch = BATCH_SIZE * GRAD_ACCUM = 12
 MIN_DEPTH       = 1e-3
@@ -129,10 +128,16 @@ def save_checkpoint(quant_sim, optimizer, scheduler, epoch, metrics):
 
 
 def load_checkpoint(quant_sim, optimizer, scheduler, path: str) -> int:
-    ck = torch.load(path, map_location=DEVICE)
+    ck = torch.load(path, map_location=DEVICE, weights_only=False)
     quant_sim.model.load_state_dict(ck["model_state"])
-    optimizer.load_state_dict(ck["optimizer"])
-    scheduler.load_state_dict(ck["scheduler"])
+    if "optimizer" in ck:
+        optimizer.load_state_dict(ck["optimizer"])
+    else:
+        print("[Resume] WARNING: checkpoint has no optimizer state, starting fresh optimizer")
+    if "scheduler" in ck:
+        scheduler.load_state_dict(ck["scheduler"])
+    else:
+        print("[Resume] WARNING: checkpoint has no scheduler state, starting fresh scheduler")
     print(f"[Resume] epoch {ck['epoch']}  metrics={ck.get('metrics', {})}")
     return ck["epoch"] + 1
 
@@ -143,7 +148,7 @@ def train_qat(quant_sim, train_loader, val_loader,
               resume_ckpt: str | None = None):
 
     criterion = CombinedLoss().to(DEVICE)
-    scaler    = GradScaler(enabled=AMP_ENABLED)
+    scaler    = GradScaler('cuda', enabled=AMP_ENABLED)
 
     # Freeze backbone BN / non-quantized params; only fine-tune quantized weights
     optimizer = AdamW(
@@ -174,7 +179,7 @@ def train_qat(quant_sim, train_loader, val_loader,
             rgb   = rgb  .to(DEVICE, non_blocking=True)   # [B, T, 3, H, W]
             depth = depth.to(DEVICE, non_blocking=True)   # [B, T, 1, H, W]
 
-            with autocast(device_type="cuda", enabled=AMP_ENABLED):
+            with autocast('cuda', enabled=AMP_ENABLED):
                 pred = quant_sim.model(rgb)               # [B, T, 1, H, W]
 
                 # VDA may return dict or raw tensor — normalise
@@ -195,11 +200,16 @@ def train_qat(quant_sim, train_loader, val_loader,
             if (step + 1) % GRAD_ACCUM == 0:
                 scaler.unscale_(optimizer)
                 nn.utils.clip_grad_norm_(quant_sim.model.parameters(), GRAD_CLIP)
+                
+                scale_before = scaler.get_scale()
                 scaler.step(optimizer)
-                if scaler._per_optimizer_states[id(optimizer)]["stage"] == OptState.STEPPED:
-                    optimizer._opt_called = True
                 scaler.update()
-                scheduler.step()
+                scale_after = scaler.get_scale()
+                
+                # Only step scheduler if optimizer actually took a step (no inf/nan grads)
+                if scale_before <= scale_after:
+                    scheduler.step()
+                    
                 optimizer.zero_grad()
 
             epoch_loss += loss.item() * GRAD_ACCUM
@@ -218,7 +228,7 @@ def train_qat(quant_sim, train_loader, val_loader,
             for rgb, depth in val_loader:
                 rgb   = rgb  .to(DEVICE, non_blocking=True)
                 depth = depth.to(DEVICE, non_blocking=True)
-                with autocast(device_type="cuda", enabled=AMP_ENABLED):
+                with autocast('cuda', enabled=AMP_ENABLED):
                     pred = quant_sim.model(rgb)
                     if isinstance(pred, dict):
                         pred = pred["depth"]
@@ -248,8 +258,13 @@ def train_qat(quant_sim, train_loader, val_loader,
         if val_metrics["abs_rel"] < best_abs_rel:
             best_abs_rel = val_metrics["abs_rel"]
             best_path    = os.path.join(CKPT_DIR, "vda_qat_best.pt")
-            torch.save({"epoch": epoch, "model_state": quant_sim.model.state_dict(),
-                        "metrics": val_metrics}, best_path)
+            torch.save({
+                "epoch"      : epoch,
+                "model_state": quant_sim.model.state_dict(),
+                "optimizer"  : optimizer.state_dict(),
+                "scheduler"  : scheduler.state_dict(),
+                "metrics"    : val_metrics,
+            }, best_path)
             print(f"  [Best] abs_rel={best_abs_rel:.4f}  saved → {best_path}")
 
     print(f"[QAT] Training complete. Best abs_rel = {best_abs_rel:.4f}")
@@ -258,7 +273,7 @@ def train_qat(quant_sim, train_loader, val_loader,
 
 if __name__ == "__main__":
     from model_patch2   import build_patched_vda
-    from old.aimet_qat_init import build_quant_sim, calibrate_encodings
+    from aimet_qat_init import build_quant_sim, calibrate_encodings
     from dataset_pipeline import build_loaders
 
     model        = build_patched_vda()

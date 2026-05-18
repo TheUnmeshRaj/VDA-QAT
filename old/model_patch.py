@@ -180,9 +180,7 @@ def patch_attention_blocks(model: nn.Module) -> tuple[int, int]:
             setattr(model, name, QuantizableAttention.from_mem_eff_attention(child))
             n_self += 1
         elif _is_temporal_attn(child):
-            # Recurse into TemporalAttention to find nested cross-attn/self-attn modules
-            s, c = patch_attention_blocks(child)
-            n_self += s; n_cross += c
+            continue
         elif _is_cross_attn(child):
             setattr(model, name, QuantizableCrossAttention.from_cross_attention(child))
             n_cross += 1
