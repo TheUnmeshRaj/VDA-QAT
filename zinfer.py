@@ -140,13 +140,20 @@ def run_inference(model, n_clips: int = 3, out_dir: str = OUT_DIR):
         else:
             depth = out
 
-        # depth: [1,T,1,H,W] or [1,T,H,W] — squeeze to [T,H,W]
-        if depth.dim() == 5:
-            depth = depth.squeeze(0).squeeze(1)   # [T,H,W]
-        elif depth.dim() == 4:
-            depth = depth.squeeze(0)               # [T,H,W]
+        # VDA forward() returns [B, T, H, W] (no channel dim).
+        # After QAT wrapping it may also be [B, T, 1, H, W] or [B*T, 1, H, W].
+        depth = depth.float()
+        if depth.dim() == 5:                         # [B, T, 1, H, W]
+            depth = depth.squeeze(0).squeeze(1)      # → [T, H, W]
+        elif depth.dim() == 4 and depth.shape[0] == 1:
+            depth = depth.squeeze(0)                 # [1, T, H, W] → [T, H, W]
+        elif depth.dim() == 4:                       # [B*T, 1, H, W]
+            depth = depth.squeeze(1).reshape(-1, rgb_batch.shape[3], rgb_batch.shape[4])
+        # depth is now [T, H, W]
 
-        depth_np = depth.cpu().float().numpy()     # [T,H,W]
+        depth_np = depth.cpu().numpy()               # [T, H, W]
+        print(f"  [Stats] depth min={depth_np.min():.4f}  max={depth_np.max():.4f}  "
+              f"mean={depth_np.mean():.4f}  shape={depth_np.shape}")
 
         # Save side-by-side RGB | Depth for frame 00 only
         for t, (frame_img, d_map) in enumerate(zip(original_frames, depth_np)):

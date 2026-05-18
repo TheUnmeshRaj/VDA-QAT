@@ -23,7 +23,7 @@ os.makedirs(CKPT_DIR, exist_ok=True)
 EPOCHS          = 30
 BATCH_SIZE      = 6          # fits comfortably in 40 GB with seq_len=4, 392×518
 SEQ_LEN         = 4
-LR_MAX          = 2e-5       # small LR — we're fine-tuning quantized weights only
+LR_MAX          = 3e-7       # QAT fine-tune: very small LR to preserve pretrained features
 WEIGHT_DECAY    = 1e-4
 GRAD_CLIP       = 1.0
 AMP_ENABLED     = True
@@ -81,6 +81,39 @@ class CombinedLoss(nn.Module):
         self.edge    = EdgeAwareLoss()
         self.temporal = TemporalConsistencyLoss()
 
+    @staticmethod
+    def _align_to_gt(pred: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
+        """
+        Least-squares scale+shift alignment of relative `pred` to metric `gt`.
+        VDA outputs affine-invariant depth — it has no absolute scale.
+        Without this step, SILog is forced to fight both quantization noise
+        AND an impossible absolute-scale constraint, collapsing the network.
+
+        Solves:  pred_aligned = scale * pred + shift
+        where (scale, shift) = argmin ||scale*pred + shift - gt||^2  over valid pixels.
+        """
+        mask = (gt > MIN_DEPTH) & (gt < MAX_DEPTH) & (pred > 0)
+        if mask.sum() < 10:
+            return pred  # not enough pixels — return as-is
+
+        p = pred[mask].float()  # [N]
+        g = gt[mask].float()    # [N]
+
+        # closed-form least-squares: [scale, shift] = (A^T A)^{-1} A^T g
+        # A = [p, 1]  →  A^T A = [[sum(p^2), sum(p)], [sum(p), N]]
+        n    = p.numel()
+        sp   = p.sum()
+        sp2  = (p * p).sum()
+        sg   = g.sum()
+        spg  = (p * g).sum()
+        det  = sp2 * n - sp * sp
+        if det.abs() < 1e-8:
+            # Degenerate case: only shift
+            return pred + (g.mean() - p.mean())
+        scale = (spg * n - sp * sg) / det
+        shift = (sg - scale * sp) / n
+        return (scale * pred + shift).clamp(MIN_DEPTH, MAX_DEPTH)
+
     def forward(self, pred_seq, gt_seq, rgb_seq):
         # shapes: [B, T, 1, H, W], [B, T, 1, H, W], [B, T, 3, H, W]
         B, T = pred_seq.shape[:2]
@@ -88,9 +121,16 @@ class CombinedLoss(nn.Module):
         gt_flat   = gt_seq  .reshape(B * T, 1, *gt_seq  .shape[3:])
         rgb_flat  = rgb_seq .reshape(B * T, 3, *rgb_seq .shape[3:])
 
-        l_silog    = self.silog(pred_flat, gt_flat)
-        l_edge     = self.edge(pred_flat, rgb_flat)
-        l_temporal = self.temporal(pred_seq)
+        # Align relative predictions to metric GT before loss computation.
+        # This is the KEY step — without it, SILog tries to enforce absolute
+        # metric scale on an affine-invariant model and destroys the network.
+        pred_aligned = self._align_to_gt(pred_flat, gt_flat)
+        # Also align the sequence-shaped tensor for temporal loss
+        pred_seq_aligned = pred_aligned.reshape(B, T, 1, *pred_seq.shape[3:])
+
+        l_silog    = self.silog(pred_aligned, gt_flat)
+        l_edge     = self.edge(pred_aligned, rgb_flat)
+        l_temporal = self.temporal(pred_seq_aligned)
 
         loss = l_silog + 0.1 * l_edge + 0.05 * l_temporal
         return loss, {"silog": l_silog.item(), "edge": l_edge.item(),
@@ -175,16 +215,21 @@ def train_qat(quant_sim, train_loader, val_loader,
             depth = depth.to(DEVICE, non_blocking=True)   # [B, T, 1, H, W]
 
             with autocast(device_type="cuda", enabled=AMP_ENABLED):
-                pred = quant_sim.model(rgb)               # [B, T, 1, H, W]
+                pred = quant_sim.model(rgb)               # [B, T, H, W] or [B*T, 1, H, W]
 
                 # VDA may return dict or raw tensor — normalise
                 if isinstance(pred, dict):
                     pred = pred["depth"]
-                if pred.dim() == 4:                       # [B*T, 1, H, W]
+                if pred.dim() == 4 and pred.shape[0] == rgb.shape[0]:
+                    # Shape is [B, T, H, W] — add channel dim
+                    pred = pred.unsqueeze(2)              # [B, T, 1, H, W]
+                elif pred.dim() == 4:
+                    # Shape is [B*T, 1, H, W]
                     B, T = rgb.shape[:2]
                     pred = pred.reshape(B, T, 1, *pred.shape[2:])
 
-                # Scale prediction to metric depth (VDA outputs relative)
+                # VDA outputs affine-invariant (relative) depth — keep raw for loss;
+                # the CombinedLoss will align scale+shift internally.
                 pred = pred.clamp(MIN_DEPTH, MAX_DEPTH)
 
                 loss, loss_parts = criterion(pred, depth, rgb)
@@ -222,11 +267,17 @@ def train_qat(quant_sim, train_loader, val_loader,
                     pred = quant_sim.model(rgb)
                     if isinstance(pred, dict):
                         pred = pred["depth"]
-                    if pred.dim() == 4:
+                    if pred.dim() == 4 and pred.shape[0] == rgb.shape[0]:
+                        pred = pred.unsqueeze(2)          # [B, T, 1, H, W]
+                    elif pred.dim() == 4:
                         B, T = rgb.shape[:2]
                         pred = pred.reshape(B, T, 1, *pred.shape[2:])
                     pred = pred.clamp(MIN_DEPTH, MAX_DEPTH)
-                m = compute_metrics(pred.flatten(0, 1), depth.flatten(0, 1))
+                    # Align relative depth to metric GT for evaluation metrics
+                    pred_flat = pred.flatten(0, 1)        # [B*T, 1, H, W]
+                    depth_flat = depth.flatten(0, 1)      # [B*T, 1, H, W]
+                    pred_flat = criterion._align_to_gt(pred_flat, depth_flat)
+                m = compute_metrics(pred_flat, depth_flat)
                 for k in val_metrics:
                     val_metrics[k] += m.get(k, 0)
                 n_val += 1

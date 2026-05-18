@@ -121,19 +121,31 @@ class QuantizableCrossAttention(nn.Module):
         query_dim   = src.to_q.in_features
         context_dim = src.to_k.in_features
         inner_dim   = src.to_q.out_features
-        
-        # infer num_heads from to_out linear
-        # to_out_lin  = src.to_out[0] if isinstance(src.to_out, nn.Sequential) else src.to_out
-        if isinstance(src.to_out, nn.Sequential):
+
+        # Resolve to_out linear and dropout
+        if isinstance(src.to_out, (nn.Sequential, nn.ModuleList)):
             to_out_lin = src.to_out[0]
-        elif isinstance(src.to_out, nn.ModuleList):
-            to_out_lin = src.to_out[0]
+            dropout    = src.to_out[1].p if len(src.to_out) > 1 and hasattr(src.to_out[1], "p") else 0.0
         else:
             to_out_lin = src.to_out
-            
-        num_heads   = getattr(src, "heads", 8)
-        head_dim    = inner_dim // num_heads
-        dropout     = src.to_out[1].p if isinstance(src.to_out, nn.Sequential) else 0.0
+            dropout    = 0.0
+
+        # Infer num_heads reliably from weight shape rather than a fragile attribute.
+        # to_out maps inner_dim -> query_dim; inner_dim == num_heads * head_dim.
+        # We also cross-check with a .heads attribute if present.
+        if hasattr(src, "heads") and src.heads > 0:
+            num_heads = src.heads
+        else:
+            # Derive from to_out: out_features == query_dim, in_features == inner_dim
+            # Try common divisors that produce integer head_dim values.
+            candidate_heads = [h for h in [1, 2, 4, 8, 12, 16, 32]
+                               if inner_dim % h == 0]
+            # Pick the largest that gives head_dim >= 32 (typical minimum)
+            num_heads = next(
+                (h for h in reversed(candidate_heads) if inner_dim // h >= 32),
+                candidate_heads[-1]
+            )
+        head_dim = inner_dim // num_heads
 
         new = cls(query_dim, context_dim, num_heads, head_dim, dropout)
         new.to_q.weight.data.copy_(src.to_q.weight.data)
@@ -151,15 +163,19 @@ class QuantizableCrossAttention(nn.Module):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _is_xformers_self_attn(module: nn.Module) -> bool:
+    """True iff this is an xFormers/timm attention block that has NOT yet been patched."""
     return (
-        hasattr(module, "qkv")
+        not isinstance(module, (QuantizableAttention, QuantizableCrossAttention))
+        and hasattr(module, "qkv")
         and hasattr(module, "proj")
         and hasattr(module, "num_heads")
     )
 
 def _is_cross_attn(module: nn.Module) -> bool:
+    """True iff this is a cross-attention block that has NOT yet been patched."""
     return (
-        hasattr(module, "to_q")
+        not isinstance(module, (QuantizableAttention, QuantizableCrossAttention))
+        and hasattr(module, "to_q")
         and hasattr(module, "to_k")
         and hasattr(module, "to_v")
         and hasattr(module, "to_out")
