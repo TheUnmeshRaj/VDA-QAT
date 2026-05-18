@@ -23,7 +23,7 @@ os.makedirs(CKPT_DIR, exist_ok=True)
 EPOCHS          = 30
 BATCH_SIZE      = 6          # fits comfortably in 40 GB with seq_len=4, 392×518
 SEQ_LEN         = 4
-LR_MAX          = 3e-7       # QAT fine-tune: very small LR to preserve pretrained features
+LR_MAX          = 1e-6       # QAT fine-tune: conservative but workable; 3e-7 was too small
 WEIGHT_DECAY    = 1e-4
 GRAD_CLIP       = 1.0
 AMP_ENABLED     = True
@@ -91,27 +91,36 @@ class CombinedLoss(nn.Module):
 
         Solves:  pred_aligned = scale * pred + shift
         where (scale, shift) = argmin ||scale*pred + shift - gt||^2  over valid pixels.
+
+        IMPORTANT: scale and shift are computed with torch.no_grad() so they are
+        treated as *constants* during backprop. Keeping them in the graph creates
+        a self-referential gradient (d(loss)/d(pred) involves d(scale)/d(pred))
+        which is ill-conditioned and causes the loss to increase.
         """
-        mask = (gt > MIN_DEPTH) & (gt < MAX_DEPTH) & (pred > 0)
-        if mask.sum() < 10:
-            return pred  # not enough pixels — return as-is
+        with torch.no_grad():
+            mask = (gt > MIN_DEPTH) & (gt < MAX_DEPTH) & (pred > 0)
+            if mask.sum() < 10:
+                return pred  # not enough pixels — return as-is
 
-        p = pred[mask].float()  # [N]
-        g = gt[mask].float()    # [N]
+            p = pred[mask].float()  # [N]
+            g = gt[mask].float()    # [N]
 
-        # closed-form least-squares: [scale, shift] = (A^T A)^{-1} A^T g
-        # A = [p, 1]  →  A^T A = [[sum(p^2), sum(p)], [sum(p), N]]
-        n    = p.numel()
-        sp   = p.sum()
-        sp2  = (p * p).sum()
-        sg   = g.sum()
-        spg  = (p * g).sum()
-        det  = sp2 * n - sp * sp
-        if det.abs() < 1e-8:
-            # Degenerate case: only shift
-            return pred + (g.mean() - p.mean())
-        scale = (spg * n - sp * sg) / det
-        shift = (sg - scale * sp) / n
+            # closed-form least-squares: [scale, shift] = (A^T A)^{-1} A^T g
+            # A = [p, 1]  →  A^T A = [[sum(p^2), sum(p)], [sum(p), N]]
+            n    = torch.tensor(p.numel(), dtype=p.dtype, device=p.device)
+            sp   = p.sum()
+            sp2  = (p * p).sum()
+            sg   = g.sum()
+            spg  = (p * g).sum()
+            det  = sp2 * n - sp * sp
+            if det.abs() < 1e-6:
+                # Degenerate: only shift
+                shift = g.mean() - p.mean()
+                return (pred + shift).clamp(MIN_DEPTH, MAX_DEPTH)
+            scale = (spg * n - sp * sg) / det
+            shift = (sg - scale * sp) / n
+
+        # Apply alignment — gradient only flows through `pred`, scale/shift are detached
         return (scale * pred + shift).clamp(MIN_DEPTH, MAX_DEPTH)
 
     def forward(self, pred_seq, gt_seq, rgb_seq):
@@ -235,7 +244,11 @@ def train_qat(quant_sim, train_loader, val_loader,
                 loss, loss_parts = criterion(pred, depth, rgb)
                 loss = loss / GRAD_ACCUM
 
-            scaler.scale(loss).backward()
+            if loss.requires_grad:
+                scaler.scale(loss).backward()
+            else:
+                print(f"  [Warning] Ep{epoch:03d} step{step:04d} loss does not require grad (no valid GT pixels). Skipping backward.")
+                continue
 
             if (step + 1) % GRAD_ACCUM == 0:
                 scaler.unscale_(optimizer)
@@ -308,7 +321,7 @@ def train_qat(quant_sim, train_loader, val_loader,
 
 
 if __name__ == "__main__":
-    from model_patch2   import build_patched_vda
+    from model_patch    import build_patched_vda
     from old.aimet_qat_init import build_quant_sim, calibrate_encodings
     from dataset_pipeline import build_loaders
 

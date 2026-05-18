@@ -64,9 +64,10 @@ rgb_transform = transforms.Compose([
 # ── model loading ─────────────────────────────────────────────────────────────
 
 def load_model(ckpt_path: str, no_quant: bool = False):
-    import model_patch2
-    model_patch2.DEVICE = DEVICE          # override hardcoded cuda:1
-    from model_patch2 import build_patched_vda
+    import model_patch
+    model_patch.DEVICE = DEVICE          
+    # override hardcoded cuda:1
+    from model_patch import build_patched_vda
 
     print(f"[Infer] Building patched VDA model on {DEVICE} ...")
     model = build_patched_vda(verify=False)
@@ -76,7 +77,7 @@ def load_model(ckpt_path: str, no_quant: bool = False):
         model.eval()
         return model
 
-    from old.aimet_qat_init import build_quant_sim
+    from aimet_qat_init import build_quant_sim
     print(f"[Infer] Initializing QuantSim wrapper for loading QAT checkpoint ...")
     dummy = torch.randn(1, 2, 3, 392, 518, device=DEVICE)
     qsim = build_quant_sim(model, dummy)
@@ -89,7 +90,11 @@ def load_model(ckpt_path: str, no_quant: bool = False):
         metrics = ck.get("metrics", {})
         print(f"[Infer] Checkpoint loaded: epoch={epoch}  abs_rel={metrics.get('abs_rel', 'N/A'):.4f}" if metrics else f"[Infer] Checkpoint loaded: epoch={epoch}")
     else:
-        print("[Infer] No checkpoint found — running with uncalibrated QuantSim model")
+        print("[Infer] No checkpoint found — calibrating activation encodings dynamically ...")
+        from dataset_pipeline import build_loaders
+        from aimet_qat_init import calibrate_encodings
+        train_loader, _ = build_loaders(batch_size=2)
+        calibrate_encodings(qsim, train_loader, n_batches=32)
 
     qsim.model.eval()
     return qsim.model

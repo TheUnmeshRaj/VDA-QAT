@@ -177,7 +177,7 @@ if __name__ == "__main__":
     import sys
     sys.path.insert(0, "/media/rvcse22/CSERV/vdaproj/Video-Depth-Anything")
 
-    from model_patch2     import build_patched_vda
+    from model_patch      import build_patched_vda
     from old.aimet_qat_init  import build_quant_sim
     from dataset_pipeline import build_loaders
 

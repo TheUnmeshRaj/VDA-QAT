@@ -124,7 +124,7 @@ def save_encodings(quant_sim: QuantizationSimModel,
 
 
 if __name__ == "__main__":
-    from model_patch2 import build_patched_vda
+    from model_patch import build_patched_vda
     from dataset_pipeline import build_loaders
 
     model = build_patched_vda()
