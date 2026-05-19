@@ -85,13 +85,17 @@ def build_quant_sim(model: nn.Module, dummy_input: torch.Tensor) -> Quantization
                 for pq in wrapper.param_quantizers.values():
                     if pq is not None:
                         pq.bitwidth = 16
+            if hasattr(wrapper, "input_quantizers"):
+                for iq in wrapper.input_quantizers:
+                    if iq is not None:
+                        iq.bitwidth = 16
             if hasattr(wrapper, "output_quantizers"):
                 for oq in wrapper.output_quantizers:
                     if oq is not None:
                         oq.bitwidth = 16
             n_overridden += 1
 
-    print(f"[QuantSim] INT8 base  |  {n_overridden} modules overridden → FP16")
+    print(f"[QuantSim] Base model patched  |  {n_overridden} modules set to 16-bit (weights + inputs + outputs)")
     return quant_sim
 
 
