@@ -25,7 +25,7 @@ CKPT_DIR        = "/media/rvcse22/CSERV/vdaproj/checkpoints"
 os.makedirs(CKPT_DIR, exist_ok=True)
 
 EPOCHS       = 30
-BATCH_SIZE   = 4
+BATCH_SIZE   = 6
 SEQ_LEN      = 4
 LR_MAX       = 1e-7
 WEIGHT_DECAY = 1e-4
@@ -33,7 +33,7 @@ GRAD_CLIP    = 1.0
 AMP_ENABLED  = True
 SAVE_EVERY_N = 1
 WARMUP_PCT   = 0.20
-GRAD_ACCUM   = 4
+GRAD_ACCUM   = 3
 MIN_DEPTH    = 0.1
 MAX_DEPTH    = 80.0
 
@@ -271,6 +271,6 @@ if __name__ == "__main__":
     model = build_patched_vda()
     dummy = torch.randn(1, 2, 3, 392, 518, device=DEVICE)
     qsim  = build_quant_sim(model, dummy)
-    train_loader, val_loader = build_loaders(batch_size=BATCH_SIZE, seq_len=SEQ_LEN, stride=12)
+    train_loader, val_loader = build_loaders(batch_size=BATCH_SIZE, seq_len=SEQ_LEN, stride=12, num_workers=12)
     calibrate_encodings(qsim, train_loader, n_batches=64)
     train_qat(qsim, train_loader, val_loader, resume_ckpt=None)

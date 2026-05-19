@@ -37,7 +37,7 @@ def main():
 
     # ── Stage 1: Dataset ─────────────────────────────────────────────────────
     print("\n[Stage 1] Building data loaders …")
-    train_loader, val_loader = build_loaders(batch_size=BATCH_SIZE, seq_len=SEQ_LEN)
+    train_loader, val_loader = build_loaders(batch_size=BATCH_SIZE, seq_len=SEQ_LEN, stride=12, num_workers=12)
 
     # ── Stage 2: Model patch ─────────────────────────────────────────────────
     print("\n[Stage 2] Patching VDA attention blocks …")

@@ -86,25 +86,31 @@ def main():
 
     # 1. FP32 Float Single Panel
     print("--- [Panel 1/3] Generating Single FP32 Float Depth Map ---")
-    cmd_float = [
-        "./vda_env/bin/python", "video_infer.py",
-        "--video", args.video,
-        "--no-quant",
-        "--single",
-        "--output", fp32_output
-    ]
-    subprocess.run(cmd_float, check=True)
+    if os.path.isfile(fp32_output):
+        print(f"  [Skip] {os.path.basename(fp32_output)} already exists — skipping generation.")
+    else:
+        cmd_float = [
+            "./vda_env/bin/python", "video_infer.py",
+            "--video", args.video,
+            "--no-quant",
+            "--single",
+            "--output", fp32_output
+        ]
+        subprocess.run(cmd_float, check=True)
 
     # 2. PTQ Calibration-Only Single Panel
     print("\n--- [Panel 2/3] Generating Single PTQ Calibration INT8 Depth Map ---")
-    cmd_calib = [
-        "./vda_env/bin/python", "video_infer.py",
-        "--video", args.video,
-        "--ckpt", "",
-        "--single",
-        "--output", ptq_output
-    ]
-    subprocess.run(cmd_calib, check=True)
+    if os.path.isfile(ptq_output):
+        print(f"  [Skip] {os.path.basename(ptq_output)} already exists — skipping generation.")
+    else:
+        cmd_calib = [
+            "./vda_env/bin/python", "video_infer.py",
+            "--video", args.video,
+            "--ckpt", "",
+            "--single",
+            "--output", ptq_output
+        ]
+        subprocess.run(cmd_calib, check=True)
 
     # 3. QAT Fine-Tuned Single Panel
     print("\n--- [Panel 3/3] Generating Single QAT Fine-Tuned INT8 Depth Map ---")
@@ -141,13 +147,13 @@ def main():
     ]
 
     try:
-        subprocess.run(ffmpeg_cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(ffmpeg_cmd, check=True)
         print("=" * 75)
         print(f" SUCCESS! Saved all visual validation outputs in: {dir_path}")
         print(f"   -> Final 2x2 Comparison Grid : {grid_output}")
         print("=" * 75)
     except subprocess.CalledProcessError as e:
-        print(f"\nERROR: FFmpeg grid compilation failed. Error log:\n{e.stderr.decode()}")
+        print(f"\nERROR: FFmpeg grid compilation failed.")
 
 if __name__ == "__main__":
     main()

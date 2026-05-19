@@ -1,0 +1,94 @@
+
+[Stage 4] Starting QAT fine-tuning �
+[Resume] epoch=2  metrics={'abs_rel': 1.5335857877191508, 'd1': 0.08163457574709407, 'rmse': 26.576894004389924, 'rmse_log': 1.6795430147422934}
+  Ep003 step0000  loss=5.9857  lr=9.81e-08  spatial=2.2687  temporal=3.7170  pred_std=4.923
+  Ep003 step0050  loss=5.7349  lr=9.80e-08  spatial=2.1836  temporal=3.5513  pred_std=4.905
+  Ep003 step0100  loss=5.6139  lr=9.80e-08  spatial=2.3393  temporal=3.2746  pred_std=4.793
+  Ep003 step0150  loss=4.0870  lr=9.79e-08  spatial=2.1675  temporal=1.9194  pred_std=5.076
+  Ep003 step0200  loss=5.3684  lr=9.79e-08  spatial=2.2366  temporal=3.1318  pred_std=4.888
+  Ep003 step0250  loss=5.9325  lr=9.79e-08  spatial=2.2721  temporal=3.6604  pred_std=4.570
+  Ep003 step0300  loss=4.4554  lr=9.78e-08  spatial=2.1462  temporal=2.3091  pred_std=4.921
+  Ep003 step0350  loss=6.3531  lr=9.78e-08  spatial=2.2511  temporal=4.1020  pred_std=5.032
+  Ep003 step0400  loss=5.6669  lr=9.77e-08  spatial=2.4137  temporal=3.2532  pred_std=4.543
+  Ep003 step0450  loss=5.3102  lr=9.77e-08  spatial=2.3057  temporal=3.0045  pred_std=4.847
+  Ep003 step0500  loss=5.3324  lr=9.76e-08  spatial=2.3269  temporal=3.0055  pred_std=4.848
+[Epoch 003] loss=5.6930  abs_rel=1.5069  d1=0.0819  rmse=26.3822  rmse_log=1.7007  time=1604s
+  [Ckpt] ? /media/rvcse22/CSERV/vdaproj/checkpoints/vda_qat_epoch003.pt
+  [Ckpt] ? /media/rvcse22/CSERV/vdaproj/checkpoints/vda_qat_best.pt
+  [Best] abs_rel=1.5069
+  Ep004 step0000  loss=3.8389  lr=9.76e-08  spatial=2.1151  temporal=1.7237  pred_std=5.129
+  Ep004 step0050  loss=4.7445  lr=9.76e-08  spatial=2.1894  temporal=2.5552  pred_std=4.944
+  Ep004 step0100  loss=5.6322  lr=9.75e-08  spatial=2.2844  temporal=3.3478  pred_std=4.868
+  Ep004 step0150  loss=5.2901  lr=9.75e-08  spatial=2.1949  temporal=3.0953  pred_std=5.037
+  Ep004 step0200  loss=3.3298  lr=9.74e-08  spatial=2.0501  temporal=1.2797  pred_std=5.249
+  Ep004 step0250  loss=6.8355  lr=9.74e-08  spatial=2.4144  temporal=4.4211  pred_std=4.826
+  Ep004 step0300  loss=5.3734  lr=9.73e-08  spatial=2.2400  temporal=3.1334  pred_std=5.104
+  Ep004 step0350  loss=5.0172  lr=9.73e-08  spatial=2.1219  temporal=2.8953  pred_std=5.136
+  Ep004 step0400  loss=6.0494  lr=9.72e-08  spatial=2.2994  temporal=3.7501  pred_std=4.693
+  Ep004 step0450  loss=6.8926  lr=9.72e-08  spatial=2.2889  temporal=4.6037  pred_std=4.930
+  Ep004 step0500  loss=5.8518  lr=9.71e-08  spatial=2.1959  temporal=3.6559  pred_std=4.762
+[Epoch 004] loss=5.6571  abs_rel=1.4624  d1=0.0842  rmse=26.0990  rmse_log=1.6931  time=1611s
+  [Ckpt] ? /media/rvcse22/CSERV/vdaproj/checkpoints/vda_qat_epoch004.pt
+  [Ckpt] ? /media/rvcse22/CSERV/vdaproj/checkpoints/vda_qat_best.pt
+  [Best] abs_rel=1.4624
+  Ep005 step0000  loss=6.7544  lr=9.71e-08  spatial=2.3496  temporal=4.4048  pred_std=4.816
+  Ep005 step0050  loss=6.3118  lr=9.71e-08  spatial=2.3731  temporal=3.9387  pred_std=4.857
+  Ep005 step0100  loss=4.1891  lr=9.70e-08  spatial=2.1963  temporal=1.9928  pred_std=5.228
+  Ep005 step0150  loss=6.2232  lr=9.70e-08  spatial=2.2951  temporal=3.9281  pred_std=4.886
+  Ep005 step0200  loss=4.8284  lr=9.69e-08  spatial=2.1617  temporal=2.6668  pred_std=5.117
+  Ep005 step0250  loss=5.8625  lr=9.69e-08  spatial=2.2351  temporal=3.6274  pred_std=4.825
+  Ep005 step0300  loss=4.6827  lr=9.68e-08  spatial=2.1710  temporal=2.5116  pred_std=5.152
+  Ep005 step0350  loss=5.5815  lr=9.67e-08  spatial=2.2097  temporal=3.3719  pred_std=4.947
+  Ep005 step0400  loss=5.8299  lr=9.67e-08  spatial=2.2689  temporal=3.5610  pred_std=4.752
+  Ep005 step0450  loss=4.3191  lr=9.66e-08  spatial=2.1040  temporal=2.2151  pred_std=5.137
+  Ep005 step0500  loss=5.5085  lr=9.66e-08  spatial=2.2335  temporal=3.2750  pred_std=4.759
+[Epoch 005] loss=5.6283  abs_rel=1.4306  d1=0.0856  rmse=25.9225  rmse_log=1.7132  time=1608s
+  [Ckpt] ? /media/rvcse22/CSERV/vdaproj/checkpoints/vda_qat_epoch005.pt
+  [Ckpt] ? /media/rvcse22/CSERV/vdaproj/checkpoints/vda_qat_best.pt
+  [Best] abs_rel=1.4306
+  Ep006 step0000  loss=4.8773  lr=9.66e-08  spatial=2.1621  temporal=2.7152  pred_std=5.072
+  Ep006 step0050  loss=5.3811  lr=9.65e-08  spatial=2.1215  temporal=3.2596  pred_std=5.037
+  Ep006 step0100  loss=4.6924  lr=9.64e-08  spatial=2.1196  temporal=2.5728  pred_std=5.237
+  Ep006 step0150  loss=5.8127  lr=9.64e-08  spatial=2.3430  temporal=3.4697  pred_std=4.727
+  Ep006 step0200  loss=7.0328  lr=9.63e-08  spatial=2.3910  temporal=4.6418  pred_std=4.710
+  Ep006 step0250  loss=5.1645  lr=9.63e-08  spatial=2.2668  temporal=2.8977  pred_std=4.859
+  Ep006 step0300  loss=6.0037  lr=9.62e-08  spatial=2.2836  temporal=3.7202  pred_std=4.779
+  Ep006 step0350  loss=6.0578  lr=9.62e-08  spatial=2.3201  temporal=3.7377  pred_std=4.955
+  Ep006 step0400  loss=5.3360  lr=9.61e-08  spatial=2.2768  temporal=3.0593  pred_std=4.979
+  Ep006 step0450  loss=5.5265  lr=9.61e-08  spatial=2.2346  temporal=3.2919  pred_std=4.981
+  Ep006 step0500  loss=5.6032  lr=9.60e-08  spatial=2.2182  temporal=3.3850  pred_std=4.977
+[Epoch 006] loss=5.5919  abs_rel=1.3958  d1=0.0874  rmse=25.6859  rmse_log=1.7129  time=1587s
+  [Ckpt] ? /media/rvcse22/CSERV/vdaproj/checkpoints/vda_qat_epoch006.pt
+  [Ckpt] ? /media/rvcse22/CSERV/vdaproj/checkpoints/vda_qat_best.pt
+  [Best] abs_rel=1.3958
+Ep007 step0000  loss=4.9054  lr=9.60e-08  spatial=2.2189  temporal=2.6865  pred_std=5.222
+  Ep007 step0050  loss=5.2334  lr=9.59e-08  spatial=2.2001  temporal=3.0333  pred_std=4.870
+  Ep007 step0100  loss=6.3647  lr=9.58e-08  spatial=2.3891  temporal=3.9756  pred_std=4.950
+  Ep007 step0150  loss=6.5311  lr=9.58e-08  spatial=2.2611  temporal=4.2700  pred_std=4.684
+  Ep007 step0200  loss=4.8550  lr=9.57e-08  spatial=2.2528  temporal=2.6023  pred_std=4.968
+  Ep007 step0250  loss=5.5547  lr=9.57e-08  spatial=2.2474  temporal=3.3073  pred_std=4.990
+  Ep007 step0300  loss=5.5866  lr=9.56e-08  spatial=2.3618  temporal=3.2248  pred_std=5.019
+  Ep007 step0350  loss=8.2346  lr=9.55e-08  spatial=2.5441  temporal=5.6905  pred_std=4.715
+  Ep007 step0400  loss=3.9292  lr=9.55e-08  spatial=2.1032  temporal=1.8260  pred_std=5.088
+  Ep007 step0450  loss=4.0500  lr=9.54e-08  spatial=2.1058  temporal=1.9442  pred_std=5.190
+  Ep007 step0500  loss=4.8535  lr=9.54e-08  spatial=2.2454  temporal=2.6081  pred_std=4.649
+[Epoch 007] loss=5.5580  abs_rel=1.3593  d1=0.0898  rmse=25.4038  rmse_log=1.7049  time=1566s
+  [Ckpt] → /media/rvcse22/CSERV/vdaproj/checkpoints/vda_qat_epoch007.pt
+  [Ckpt] → /media/rvcse22/CSERV/vdaproj/checkpoints/vda_qat_best.pt
+  [Best] abs_rel=1.3593
+  Ep008 step0000  loss=5.4182  lr=9.53e-08  spatial=2.1506  temporal=3.2676  pred_std=4.881
+  Ep008 step0050  loss=7.1460  lr=9.53e-08  spatial=2.3621  temporal=4.7839  pred_std=4.805
+  Ep008 step0100  loss=6.1304  lr=9.52e-08  spatial=2.2548  temporal=3.8756  pred_std=5.087
+  Ep008 step0150  loss=4.9891  lr=9.51e-08  spatial=2.1606  temporal=2.8284  pred_std=5.099
+  Ep008 step0200  loss=6.0897  lr=9.51e-08  spatial=2.2470  temporal=3.8427  pred_std=4.824
+  Ep008 step0250  loss=4.6881  lr=9.50e-08  spatial=2.2196  temporal=2.4685  pred_std=5.017
+  Ep008 step0300  loss=4.4175  lr=9.49e-08  spatial=2.2099  temporal=2.2075  pred_std=4.737
+  Ep008 step0350  loss=6.9592  lr=9.49e-08  spatial=2.4305  temporal=4.5287  pred_std=4.256
+  Ep008 step0400  loss=6.0099  lr=9.48e-08  spatial=2.1756  temporal=3.8343  pred_std=5.001
+  Ep008 step0450  loss=6.6742  lr=9.47e-08  spatial=2.4552  temporal=4.2190  pred_std=4.519
+  Ep008 step0500  loss=5.5081  lr=9.47e-08  spatial=2.3174  temporal=3.1907  pred_std=4.672
+[Epoch 008] loss=5.5267  abs_rel=1.3374  d1=0.0909  rmse=25.2657  rmse_log=1.7299  time=1570s
+  [Ckpt] → /media/rvcse22/CSERV/vdaproj/checkpoints/vda_qat_epoch008.pt
+  [Ckpt] → /media/rvcse22/CSERV/vdaproj/checkpoints/vda_qat_best.pt
+  [Best] abs_rel=1.3374
+  Ep009 step0000  loss=5.1180  lr=9.46e-08  spatial=2.2419  temporal=2.8761  pred_std=5.043
