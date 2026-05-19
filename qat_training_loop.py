@@ -120,7 +120,7 @@ def save_checkpoint(quant_sim, optimizer, scheduler, epoch, metrics, tag=None):
     print(f"  [Ckpt] → {path}")
 
 
-def load_checkpoint(quant_sim, optimizer, scheduler, path: str) -> int:
+def load_checkpoint(quant_sim, optimizer, scheduler, path: str) -> tuple[int, float]:
     ck = torch.load(path, map_location=DEVICE, weights_only=False)
     quant_sim.model.load_state_dict(ck["model_state"])
     if "optimizer" in ck:
@@ -131,8 +131,11 @@ def load_checkpoint(quant_sim, optimizer, scheduler, path: str) -> int:
         scheduler.load_state_dict(ck["scheduler"])
     else:
         print("[Resume] WARNING: no scheduler state in checkpoint")
-    print(f"[Resume] epoch={ck['epoch']}  metrics={ck.get('metrics', {})}")
-    return ck["epoch"] + 1
+    
+    metrics = ck.get("metrics", {})
+    best_abs_rel = metrics.get("abs_rel", float("inf"))
+    print(f"[Resume] epoch={ck['epoch']}  metrics={metrics}  restored best_abs_rel={best_abs_rel:.4f}")
+    return ck["epoch"] + 1, best_abs_rel
 
 
 # ── Collapse detector ─────────────────────────────────────────────────────────
@@ -174,10 +177,9 @@ def train_qat(quant_sim, train_loader, val_loader,
     scheduler = SequentialLR(optimizer, schedulers=[warmup, cosine], milestones=[200])
 
     start_epoch = 0
-    if resume_ckpt:
-        start_epoch = load_checkpoint(quant_sim, optimizer, scheduler, resume_ckpt)
-
     best_abs_rel = float("inf")
+    if resume_ckpt:
+        start_epoch, best_abs_rel = load_checkpoint(quant_sim, optimizer, scheduler, resume_ckpt)
 
     for epoch in range(start_epoch, EPOCHS):
         quant_sim.model.train()
