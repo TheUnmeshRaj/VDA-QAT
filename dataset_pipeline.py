@@ -142,9 +142,10 @@ class VKittiVideoDataset(Dataset):
 def build_loaders(batch_size=2,
                   seq_len=SEQ_LEN,
                   num_workers=8,
-                  val_split=0.1):
+                  val_split=0.1,
+                  stride=None):
 
-    full_ds = VKittiVideoDataset(seq_len=seq_len)
+    full_ds = VKittiVideoDataset(seq_len=seq_len, stride=stride)
 
     n_total = len(full_ds)
     n_val = max(1, int(n_total * val_split))

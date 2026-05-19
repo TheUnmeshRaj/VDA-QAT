@@ -9,3 +9,4 @@ __pycache__/
 .my_pip_cache/
 .my_tmp/
 vda_env/
+videos/

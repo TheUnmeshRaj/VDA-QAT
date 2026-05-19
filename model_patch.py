@@ -9,9 +9,11 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-DEVICE       = torch.device("cuda:1")
-CKPT_PATH    = "/media/rvcse22/CSERV/vdaproj/checkpoints/vda_small_pretrained.pth"
-VDA_REPO     = "/media/rvcse22/CSERV/vdaproj/Video-Depth-Anything"
+import os
+VDA_CUDA_DEVICE = os.environ.get("VDA_CUDA_DEVICE", "1")
+DEVICE          = torch.device(f"cuda:{VDA_CUDA_DEVICE}")
+CKPT_PATH       = "/media/rvcse22/CSERV/vdaproj/checkpoints/vda_small_pretrained.pth"
+VDA_REPO        = "/media/rvcse22/CSERV/vdaproj/Video-Depth-Anything"
 
 import sys
 sys.path.insert(0, VDA_REPO)

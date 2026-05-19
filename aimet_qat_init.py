@@ -3,6 +3,7 @@ AIMET QAT Initialization — Policy B mixed-precision (top-10 sensitive in FP16,
 LayerNorm, Softmax, resize/decoder critical ops also kept FP16 per quantisation strategy table.
 """
 
+import os
 import torch
 import torch.nn as nn
 from aimet_torch.quantsim import QuantizationSimModel
@@ -13,7 +14,8 @@ from aimet_torch.nn import QuantizationMixin
 from video_depth_anything.dinov2_layers.layer_scale import LayerScale
 import json
 
-DEVICE = torch.device("cuda:1")
+VDA_CUDA_DEVICE = os.environ.get("VDA_CUDA_DEVICE", "1")
+DEVICE          = torch.device(f"cuda:{VDA_CUDA_DEVICE}")
 
 # ── Policy B: top-10 sensitive layers kept FP16 ──────────────────────────────
 POLICY_B_FP16_LAYERS = [
