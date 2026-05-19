@@ -134,8 +134,8 @@ def main():
         "-filter_complex", (
             "[0:v]scale=518:392,drawtext=text='1. Original RGB':fontcolor=white:fontsize=18:box=1:boxcolor=black@0.6:boxborderw=5:x=15:y=15[t0];"
             "[1:v]scale=518:392,drawtext=text='2. Pretrained Float (FP32)':fontcolor=white:fontsize=18:box=1:boxcolor=black@0.6:boxborderw=5:x=15:y=15[t1];"
-            "[2:v]scale=518:392,drawtext=text='3. PTQ Calibration (INT8)':fontcolor=white:fontsize=18:box=1:boxcolor=black@0.6:boxborderw=5:x=15:y=15[t2];"
-            "[3:v]scale=518:392,drawtext=text='4. Fine-tuned QAT (INT8)':fontcolor=white:fontsize=18:box=1:boxcolor=black@0.6:boxborderw=5:x=15:y=15[t3];"
+            "[2:v]scale=518:392,drawtext=text='3. Calibration (INT8)':fontcolor=white:fontsize=18:box=1:boxcolor=black@0.6:boxborderw=5:x=15:y=15[t2];"
+            "[3:v]scale=518:392,drawtext=text='4. QAT (INT8)':fontcolor=white:fontsize=18:box=1:boxcolor=black@0.6:boxborderw=5:x=15:y=15[t3];"
             "[t0][t1][t2][t3]xstack=inputs=4:layout=0_0|w0_0|0_h0|w0_h0[v]"
         ),
         "-map", "[v]",

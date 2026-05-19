@@ -43,7 +43,7 @@ MAX_DEPTH    = 80.0
 class CombinedLoss(nn.Module):
     def __init__(self):
         super().__init__()
-        self.vda_loss = VideoDepthLoss()
+        self.vda_loss = VideoDepthLoss(stable_scale=20.0)
 
     def forward(self, pred_seq: torch.Tensor,
                 gt_seq:   torch.Tensor) -> tuple[torch.Tensor, dict]:
@@ -151,6 +151,15 @@ def check_pred_health(pred: torch.Tensor, step: int, epoch: int):
 def train_qat(quant_sim, train_loader, val_loader,
               resume_ckpt: str | None = None):
 
+    # ── Teacher Model for Knowledge Distillation ──
+    from model_patch import build_patched_vda
+    print("[QAT] Building FP32 Teacher model for feature distillation mimicry...")
+    teacher_model = build_patched_vda(verify=False).to(DEVICE)
+    teacher_model.eval()
+    for p in teacher_model.parameters():
+        p.requires_grad = False
+    print("[QAT] Teacher model locked and ready ✓\n")
+
     criterion = CombinedLoss().to(DEVICE)
     scaler    = GradScaler("cuda", enabled=AMP_ENABLED)
 
@@ -188,7 +197,19 @@ def train_qat(quant_sim, train_loader, val_loader,
 
             with autocast("cuda", enabled=AMP_ENABLED):
                 pred = normalise_pred(quant_sim.model(rgb))   # [B,T,1,H,W], no clamp
-                loss, parts = criterion(pred, depth)
+                
+                # Get zero-noise FP32 predictions from teacher
+                with torch.no_grad():
+                    teacher_pred = normalise_pred(teacher_model(rgb))
+                
+                # Standard loss to ground truth (spatial + temporal consistency)
+                gt_loss, parts = criterion(pred, depth)
+                
+                # Logit Distillation Loss (direct pixel-level MSE mimicry)
+                distill_loss = nn.functional.mse_loss(pred, teacher_pred)
+                
+                # Combine losses (distill weight = 5.0 ensures exact replication)
+                loss = gt_loss + 5.0 * distill_loss
                 loss = loss / GRAD_ACCUM
 
             # Hard guard — should never trigger with VideoDepthLoss but be safe
@@ -219,6 +240,7 @@ def train_qat(quant_sim, train_loader, val_loader,
                       f"lr={optimizer.param_groups[0]['lr']:.2e}  "
                       f"spatial={parts['spatial']:.4f}  "
                       f"temporal={parts['temporal']:.4f}  "
+                      f"distill={distill_loss.item():.4f}  "
                       f"pred_std={pred.std().item():.3f}")
 
         if skipped:
