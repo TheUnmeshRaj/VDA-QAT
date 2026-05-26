@@ -24,7 +24,7 @@ DEVICE          = torch.device(f"cuda:{VDA_CUDA_DEVICE}")
 CKPT_DIR        = "/media/rvcse22/CSERV/vdaproj/checkpoints"
 os.makedirs(CKPT_DIR, exist_ok=True)
 
-EPOCHS       = 30
+EPOCHS       = 50
 BATCH_SIZE   = 6
 SEQ_LEN      = 4
 LR_MAX       = 1e-7

@@ -196,5 +196,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     model = load_model(args.ckpt, no_quant=args.no_quant)
-    out_dir = "checkpoints/infer_output_float" if args.no_quant else "checkpoints/infer_output_qat"
+    out_dir = "checkpoints/infer_output_float" if args.no_quant else "checkpoints/infer_output_qat/new"
     run_inference(model, n_clips=args.n_clips, out_dir=out_dir)

@@ -37,7 +37,7 @@ ARCH_FP16_MODULE_TYPES = (nn.LayerNorm, nn.Softmax)
 # Decoder / resize critical op name substrings
 DECODER_FP16_SUBSTRINGS = [
     "depth_head", "decode_head", "scratch", "refinenet",
-    "head.resize", "head.conv_depth",
+    "head.",
 ]
 
 
